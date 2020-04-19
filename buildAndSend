@@ -1,0 +1,19 @@
+#!/bin/bash
+
+if [ "$#" -ne 1 ]
+    then
+        echo "Wrong number of parameters"
+        echo "Usage: $0 <destination host for binary>"
+        exit 1
+fi
+
+if [ ! $(ping -c 1 -W 1 $1 &> /dev/null && echo 1) ]
+    then
+        echo "Destination host for binary ($1) not active"
+        echo "Usage: $0 <destination host for binary>"
+        exit 1
+fi
+
+env GOOS=linux GOARCH=arm GOARM=5 go build && scp ./$1 pi@$1:Local # && scp ./$1 pi@$1:Gasoleo
+
+echo "Done!"
