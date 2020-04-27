@@ -1,5 +1,8 @@
 package main
 
+//    To install this as a crontab:
+//    */1 * * * * if [ ! $(pgrep caldera) ]; then tmux new-session -d -s auto-session /home/pi/Local/caldera; fi
+
 import (
 	"bufio"
 	"bytes"
@@ -15,10 +18,11 @@ import (
 )
 
 const (
-	hysteresis     = 0.1
 	timeInterval   = 2 * time.Minute
 	sensorRetry    = 3 * time.Second
+	maxSensorRetry = 2 * time.Minute
 	gettempBinary  = "Local/gettemp"
+	configFileName = ".calderaConfig"
 	ON             = "\033[1;32mON\033[0m"
 	OFF            = "\033[1;31mOFF\033[0m"
 	tempFormatter  = "\033[1;33m%.2f\033[0m"
@@ -34,6 +38,7 @@ var (
 	sensor       = "salon"
 	currentTemp  = 0.0
 	targetTemp   = 21.0
+	hysteresis   = 0.05
 	errorInTemp  = true
 	logfileName  = ""
 	powerPin1    = rpio.Pin(14)
@@ -135,6 +140,7 @@ func printStatus() {
 			fmt.Println(ON)
 		}
 		fmt.Printf("# Target temperature is "+tempFormatter+"\n", targetTemp)
+		fmt.Printf("# Hystheresis is "+tempFormatter+"\n", hysteresis)
 		fmt.Print("# Heat should be ")
 		if heatOn {
 			fmt.Print(ON)
@@ -150,7 +156,94 @@ func printStatus() {
 	}
 }
 
+func readConfig() {
+	configFile, err := os.Open(configFileName)
+	defer configFile.Close()
+	if err == nil {
+
+		var powerOnSaved bool
+		var thermostatOnSaved bool
+		var heatOnSaved bool
+		var sensorSaved string
+		var targetTempSaved float64
+		var hysteresisSaved float64
+
+		var line string
+		n, err := fmt.Fscanln(configFile, &line)
+		if err != nil || n != 1 {
+			return
+		}
+		s := strings.Split(line, ",")
+		if len(s) != 6 {
+			return
+		}
+
+		if s[0] == "true" {
+			powerOnSaved = true
+		} else if s[0] == "false" {
+			powerOnSaved = false
+		} else {
+			return
+		}
+
+		if s[1] == "true" {
+			thermostatOnSaved = true
+		} else if s[1] == "false" {
+			thermostatOnSaved = false
+		} else {
+			return
+		}
+
+		if s[2] == "true" {
+			heatOnSaved = true
+		} else if s[2] == "false" {
+			heatOnSaved = false
+		} else {
+			return
+		}
+
+		sensorSaved = s[3]
+
+		targetTempSaved, err = strconv.ParseFloat(s[4], 64)
+		if err != nil {
+			return
+		}
+
+		hysteresisSaved, err = strconv.ParseFloat(s[5], 64)
+		if err != nil {
+			return
+		}
+
+		powerOn = powerOnSaved
+		thermostatOn = thermostatOnSaved
+		heatOn = heatOnSaved
+		sensor = sensorSaved
+		targetTemp = targetTempSaved
+		hysteresis = hysteresisSaved
+
+	} else {
+		fmt.Println("Config file does not exist")
+	}
+}
+
+func writeConfig() {
+	configFile, err := os.Create(configFileName)
+	if err == nil {
+		fmt.Fprintf(configFile, "%v,%v,%v,%v,%v,%v\n", powerOn, thermostatOn, heatOn, sensor, targetTemp, hysteresis)
+	}
+	configFile.Close()
+	log.Println("Config updated:")
+	log.Println("  - powerOn is", powerOn)
+	log.Println("  - heatOn is", heatOn)
+	log.Println("  - thermostatOn", thermostatOn)
+	log.Println("  - sensor is", sensor)
+	log.Println("  - targetTemp is", targetTemp)
+	log.Println("  - hysteresis is", hysteresis)
+}
+
 func main() {
+
+	log.Println(">>> Starting system")
 
 	executable, err := os.Executable()
 	check(err)
@@ -171,9 +264,7 @@ func main() {
 	powerPin2.Output()
 	defer powerPin1.Input()
 	defer powerPin2.Input()
-	setPower(ON)
 	heatPin.Output()
-	setHeat(OFF)
 	defer heatPin.Input()
 	readPowerPin.Input()
 	readPowerPin.PullUp()
@@ -181,9 +272,24 @@ func main() {
 	readHeatPin.PullUp()
 	log.Println("Done configuring rpio ...")
 
+	readConfig()
+
+	if powerOn {
+		setPower(ON)
+	} else {
+		setPower(OFF)
+	}
+	if heatOn {
+		setHeat(ON)
+	} else {
+		setHeat(OFF)
+	}
+
+	writeConfig()
+
 	// Thermostat loop
 	go func() {
-		lastRetry := sensorRetry
+		nextRetry := sensorRetry
 		for {
 			readPower()
 			readHeat()
@@ -191,17 +297,20 @@ func main() {
 			if errorInTemp {
 				// Oops, there has been an error measuring the temperature
 				setHeat(OFF)
-				time.Sleep(lastRetry)
-				lastRetry *= 2 // So we increase the wait time progressively in cummulative errors
+				time.Sleep(nextRetry)
+				nextRetry = (nextRetry * 3) / 2 // So we increase the wait time progressively in cummulative errors
+				if nextRetry > maxSensorRetry {
+					nextRetry = maxSensorRetry
+				}
 				continue
 			} else {
-				lastRetry = sensorRetry
+				nextRetry = sensorRetry
 			}
 			log.Println("Current temp is ", currentTemp)
 			if powerReading && thermostatOn {
-				if currentTemp <= targetTemp-hysteresis && !heatReading {
+				if currentTemp <= targetTemp-hysteresis && !heatOn {
 					setHeat(ON)
-				} else if currentTemp >= targetTemp+hysteresis && heatReading {
+				} else if currentTemp >= targetTemp+hysteresis && heatOn {
 					setHeat(OFF)
 				}
 			}
@@ -242,6 +351,19 @@ func main() {
 				}
 				targetTemp = newTemp
 				str = fmt.Sprintf("Target temperature changed, old temparture was %.2f, new temperature is %.2f", oldTemp, targetTemp)
+			case "changeHyst":
+				if len(command) != 2 {
+					fmt.Println("Missing hysteresis, syntax is: changeTemp <hyst>")
+					continue
+				}
+				oldHyst := hysteresis
+				newHyst, err := strconv.ParseFloat(command[1], 64)
+				if err != nil {
+					fmt.Println("Wrong hystheresis: ", command[1])
+					continue
+				}
+				hysteresis = newHyst
+				str = fmt.Sprintf("Hystheresis changed, old hysteresis was %.2f, new hysteresis is %.2f", oldHyst, newHyst)
 			case "changeSensor":
 				if len(command) != 2 {
 					fmt.Println("Missing new sensor, syntax is: changeSensor <sensor>")
@@ -275,6 +397,7 @@ func main() {
 				fmt.Println("COMMANDS:")
 				fmt.Println("status - prints current status")
 				fmt.Println("changeTemp <temp> - sets a new target temperature, e.g. 21.5")
+				fmt.Println("changeHyst <hyst> - sets a new hysteresis, e.g. 0.1")
 				fmt.Println("changeSensor <sensor> - sets a new refernce temperature sensor, e.g. \"salon\"")
 				fmt.Println("pauseThermostat - disables the thermostat function (also manually stops the heater)")
 				fmt.Println("resumeThermostat - enables the thermostat function")
@@ -289,6 +412,7 @@ func main() {
 			}
 			fmt.Println(str)
 			log.Println(str)
+			writeConfig()
 		}
 	}
 
