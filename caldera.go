@@ -243,8 +243,6 @@ func writeConfig() {
 
 func main() {
 
-	log.Println(">>> Starting system")
-
 	executable, err := os.Executable()
 	check(err)
 	logfileName = executable + ".log"
@@ -255,6 +253,8 @@ func main() {
 	}
 
 	log.SetOutput(logfile)
+	log.Println(">>> Starting system")
+
 	log.Println("Starting thermostat and all")
 	defer logfile.Close()
 
@@ -296,7 +296,9 @@ func main() {
 			readTemp()
 			if errorInTemp {
 				// Oops, there has been an error measuring the temperature
-				setHeat(OFF)
+				if thermostatOn {
+					setHeat(OFF)
+				}
 				time.Sleep(nextRetry)
 				nextRetry = (nextRetry * 3) / 2 // So we increase the wait time progressively in cummulative errors
 				if nextRetry > maxSensorRetry {
