@@ -1,0 +1,160 @@
+
+<!-- This is a go template. TO be used with header.html, which provides with the header of the actual HTML file -->
+
+      <div class="row flex">
+        <div class="col-md-12">
+          <h4>La caldera está
+            {{if .power}}
+              <label style="color:#00AA00";>encendida</label>
+              <a href="#" data-toggle="modal" data-target="#powerOffModal"><button type="button" class="btn btn-sm btn-primary">Apagar</button></a>
+              <h4>El termostato está
+                {{if .thermostat}}
+                  <label style="color:#00AA00";>activado</label>
+                  <a href="#" data-toggle="modal" data-target="#thermostatOffModal"><button type="button" class="btn btn-sm btn-primary">Desactivar</button></a>
+                {{else}}
+                  <label style="color:#AA0000";>desactivado</label>
+                  <a href="#" data-toggle="modal" data-target="#thermostatOnModal"><button type="button" class="btn btn-sm btn-primary">Activar</button></a>
+                {{end}}
+              </h4>
+            {{else}}
+              <label style="color:#AA0000";>apagada</label>
+              <a href="#" data-toggle="modal" data-target="#powerOnModal"><button type="button" class="btn btn-sm btn-primary">Encender</button></a>
+            {{end}}
+          </h4>
+          <h4>(El calentador está ahora 
+            {{if .heater}}
+              <label style="color:#00AA00";>encendido</label>)
+            {{else}}
+              <label style="color:#AA0000";>apagado</label>)
+            {{end}}
+          </h4>
+          <h4>Temperatura actual ({{.sensor}}): <b>{{.temperature}}</b></h4>
+          {{if and (.power) (.thermostat)}}
+          <h4>Temperatura objetivo: <b>{{.targettemp}}</b> <a href="#" data-toggle="modal" data-target="#changeTempModal"><button type="button" class="btn btn-sm btn-primary">Cambiar</button></a></h4>
+          {{end}}
+        </div>
+      </div>
+
+
+      <!-- The modal to power off -->
+      <div class="modal fade" id="powerOffModal" tabindex="-1" role="dialog" aria-labelledby="powerOffModalLabel">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <form action="/poweroff" method="post">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="manageModalLabel">Esto va a apagar la caldera. Estás seguro?</h4>
+              </div>
+              <div class="modal-footer">
+                <button type="submit" name="submit" value="create" id="changebutton" class="btn btn-primary form-changebutton">Apagar</button>
+              <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Then the modal to power on -->
+      <div class="modal fade" id="powerOnModal" tabindex="-1" role="dialog" aria-labelledby="powerOnModalLabel">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <form action="/poweron" method="post">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="manageModalLabel">Esto va a encender la caldera, es correcto?</h4>
+              </div>
+              <div class="modal-footer">
+                <button type="submit" name="submit" value="create" id="changebutton" class="btn btn-primary form-changebutton">Encender</button>
+              <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- The modal to set control off -->
+      <div class="modal fade" id="thermostatOffModal" tabindex="-1" role="dialog" aria-labelledby="thermostatOffModalLabel">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <form action="/thermostatoff" method="post">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="manageModalLabel">Esto va a desactivar el termostato. Estás seguro?</h4>
+              </div>
+              <div class="modal-footer">
+                <button type="submit" name="submit" value="create" id="changebutton" class="btn btn-primary form-changebutton">Desactivar</button>
+              <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Then the modal to set control on -->
+      <div class="modal fade" id="thermostatOnModal" tabindex="-1" role="dialog" aria-labelledby="thermostatOnModalLabel">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <form action="/thermostaton" method="post">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="manageModalLabel">Esto va a activar el termostato, es correcto?</h4>
+              </div>
+              <div class="modal-footer">
+                <button type="submit" name="submit" value="create" id="changebutton" class="btn btn-primary form-changebutton">Activar</button>
+              <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- Modal: change target temp -->
+      <div class="modal fade" id="changeTempModal" tabindex="-1" role="dialog" aria-labelledby="changeTempModalLabel">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <form action="/changetemp" method="post">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="setModalLabel">Cambiar temperatura objetivo</h4>
+              </div>
+              <div class="modal-body">
+                <table>
+                  <tr>
+                    <td style="padding-left:10px; padding-right:20px" colspan="2" class="col-sm-4"><label class="control-label">Temperatura actual: <b>{{.temperature}}</b></label></td>
+                  </tr>
+                  <tr>
+                    <td style="padding-left:10px; padding-right:20px" class="col-sm-4"><label class="control-label">Temepratura nueva:</label></td>
+                    <td class="col-sm-8"><span class="form-newtemp"><input type="text" name="newtemp" class="form-control" required></span></td>
+                  </tr>
+                  <tr>
+                    <td colspan="2" style="padding-left:10px; padding-right:20px" class="col-sm-6"><button type="submit" name="submit" value="submit" class="btn btn-lg btn-primary">Cambiar</button></td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
+              <div class="modal-footer">
+              <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+
+    </div> <!-- /container -->
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="/resources/assets/js/vendor/jquery.min.js"><\/script>')</script>
+    <script src="/resources/dist/js/bootstrap.min.js"></script>
+    <script src="/resources/assets/js/docs.min.js"></script>
+
+  </body>
+
+</html>

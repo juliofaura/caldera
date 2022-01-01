@@ -5,48 +5,28 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/juliofaura/caldera/data"
+	"github.com/juliofaura/caldera/server"
 	rpio "github.com/stianeikeland/go-rpio"
 )
 
 const (
-	timeInterval   = 2 * time.Minute
+	timeInterval   = 1 * time.Minute
 	sensorRetry    = 3 * time.Second
-	maxSensorRetry = 2 * time.Minute
-	gettempBinary  = "Local/gettemp"
+	maxSensorRetry = 1 * time.Minute
 	configFileName = ".calderaConfig"
-	ON             = "\033[1;32mON\033[0m"
-	OFF            = "\033[1;31mOFF\033[0m"
 	tempFormatter  = "\033[1;33m%.2f\033[0m"
 	errorFormatter = "\033[1;31m%v\033[0m"
 )
 
-var (
-	powerOn      = true // Weather we are powering the heater
-	powerReading = true // Weather the heater has power (could be powered externally)
-	thermostatOn = true // Whether the thermostat control is on
-	heatOn       = true // Whether we are intending to connect the heat
-	heatReading  = true // Whether the heat is actually connected (could be through an external thermostat)
-	sensor       = "salon"
-	currentTemp  = 0.0
-	targetTemp   = 21.0
-	hysteresis   = 0.05
-	errorInTemp  = true
-	logfileName  = ""
-	powerPin1    = rpio.Pin(14)
-	powerPin2    = rpio.Pin(15)
-	heatPin      = rpio.Pin(23)
-	readPowerPin = rpio.Pin(27)
-	readHeatPin  = rpio.Pin(17)
-)
+var ()
 
 func check(e error) {
 	if e != nil {
@@ -54,104 +34,49 @@ func check(e error) {
 	}
 }
 
-func setPower(state string) {
-	if state == ON {
-		powerPin1.Write(rpio.High)
-		powerPin2.Write(rpio.High)
-		powerOn = true
-	} else if state == OFF {
-		powerPin1.Write(rpio.Low)
-		powerPin2.Write(rpio.Low)
-		powerOn = false
-	}
-	log.Println("Power set to", state)
-}
-
-func setHeat(state string) {
-	if state == ON {
-		heatPin.Write(rpio.High)
-		heatOn = true
-	} else if state == OFF {
-		heatPin.Write(rpio.Low)
-		heatOn = false
-	}
-	log.Println("Heat set to", state)
-}
-
-func readPower() bool {
-	powerReading = readPowerPin.Read() == rpio.Low
-	return powerReading
-}
-
-func readHeat() bool {
-	heatReading = readHeatPin.Read() == rpio.High
-	return heatReading
-}
-
-func readTemp() (temperature float64, err error) {
-	cmd := exec.Command("ssh", "pi@"+sensor, gettempBinary)
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	err = cmd.Run()
-	if err != nil {
-		errorInTemp = true
-		return
-	}
-	result := strings.TrimSpace(string(stdout.Bytes()))
-	temperature, err = strconv.ParseFloat(result, 64)
-	if err != nil {
-		errorInTemp = true
-		log.Printf("Error mneasuring temperature in sensor %v (%v)\n", sensor, err)
-	} else {
-		errorInTemp = false
-		currentTemp = temperature
-	}
-	return
-}
-
 func printStatus() {
-	readPower()
-	readHeat()
-	readTemp()
+	data.ReadPower()
+	data.ReadHeat()
+	data.ReadTemp()
 	fmt.Print("# Power should be ")
-	if powerOn {
-		fmt.Print(ON)
+	if data.PowerOn {
+		fmt.Print(data.ON)
 	} else {
-		fmt.Print(OFF)
+		fmt.Print(data.OFF)
 	}
 	fmt.Print(" (and is ")
-	if powerReading {
-		fmt.Println(ON, ")")
+	if data.PowerReading {
+		fmt.Println(data.ON, ")")
 	} else {
-		fmt.Println(OFF, ")")
+		fmt.Println(data.OFF, ")")
 	}
 
-	if errorInTemp {
-		fmt.Printf(errorFormatter, "# Error reading current temperature, reference sensor is "+sensor+"\n")
+	if data.ErrorInTemp {
+		fmt.Printf(errorFormatter, "# Error reading current temperature, reference sensor is "+data.Sensor+"\n")
 	} else {
-		fmt.Printf("# Current temperature is "+tempFormatter+" (reference sensor is %v)\n", currentTemp, sensor)
+		fmt.Printf("# Current temperature is "+tempFormatter+" (reference sensor is %v)\n", data.CurrentTemp, data.Sensor)
 	}
 
-	if powerOn {
+	if data.PowerOn {
 		fmt.Print("# Thermostat control is ")
-		if !thermostatOn {
-			fmt.Println(OFF)
+		if !data.ThermostatOn {
+			fmt.Println(data.OFF)
 		} else {
-			fmt.Println(ON)
+			fmt.Println(data.ON)
 		}
-		fmt.Printf("# Target temperature is "+tempFormatter+"\n", targetTemp)
-		fmt.Printf("# Hystheresis is "+tempFormatter+"\n", hysteresis)
+		fmt.Printf("# Target temperature is "+tempFormatter+"\n", data.TargetTemp)
+		fmt.Printf("# Hystheresis is "+tempFormatter+"\n", data.Hysteresis)
 		fmt.Print("# Heat should be ")
-		if heatOn {
-			fmt.Print(ON)
+		if data.HeatOn {
+			fmt.Print(data.ON)
 		} else {
-			fmt.Print(OFF)
+			fmt.Print(data.OFF)
 		}
 		fmt.Print(" (and is ")
-		if heatReading {
-			fmt.Println(ON, ")")
+		if data.HeatReading {
+			fmt.Println(data.ON, ")")
 		} else {
-			fmt.Println(OFF, ")")
+			fmt.Println(data.OFF, ")")
 		}
 	}
 }
@@ -214,12 +139,12 @@ func readConfig() {
 			return
 		}
 
-		powerOn = powerOnSaved
-		thermostatOn = thermostatOnSaved
-		heatOn = heatOnSaved
-		sensor = sensorSaved
-		targetTemp = targetTempSaved
-		hysteresis = hysteresisSaved
+		data.PowerOn = powerOnSaved
+		data.ThermostatOn = thermostatOnSaved
+		data.HeatOn = heatOnSaved
+		data.Sensor = sensorSaved
+		data.TargetTemp = targetTempSaved
+		data.Hysteresis = hysteresisSaved
 
 	} else {
 		fmt.Println("Config file does not exist")
@@ -229,25 +154,33 @@ func readConfig() {
 func writeConfig() {
 	configFile, err := os.Create(configFileName)
 	if err == nil {
-		fmt.Fprintf(configFile, "%v,%v,%v,%v,%v,%v\n", powerOn, thermostatOn, heatOn, sensor, targetTemp, hysteresis)
+		fmt.Fprintf(configFile, "%v,%v,%v,%v,%v,%v\n", data.PowerOn, data.ThermostatOn, data.HeatOn, data.Sensor, data.TargetTemp, data.Hysteresis)
 	}
 	configFile.Close()
 	log.Println("Config updated:")
-	log.Println("  - powerOn is", powerOn)
-	log.Println("  - heatOn is", heatOn)
-	log.Println("  - thermostatOn", thermostatOn)
-	log.Println("  - sensor is", sensor)
-	log.Println("  - targetTemp is", targetTemp)
-	log.Println("  - hysteresis is", hysteresis)
+	log.Println("  - powerOn is", data.PowerOn)
+	log.Println("  - heatOn is", data.HeatOn)
+	log.Println("  - thermostatOn", data.ThermostatOn)
+	log.Println("  - sensor is", data.Sensor)
+	log.Println("  - targetTemp is", data.TargetTemp)
+	log.Println("  - hysteresis is", data.Hysteresis)
 }
 
 func main() {
 
+	args := os.Args
+	if len(args) >= 2 {
+		server.WEBPORT = args[1]
+	}
+	server.HEADER_PAGE_TITLE = "Caldera control and report page"
+	log.Printf("Initializing %s with web port='%v'", args[0], server.WEBPORT)
+	server.StartWeb()
+
 	executable, err := os.Executable()
 	check(err)
-	logfileName = executable + ".log"
+	data.LogfileName = executable + ".log"
 
-	logfile, err := os.OpenFile(logfileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	logfile, err := os.OpenFile(data.LogfileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("error opening log file: %v", err)
 	}
@@ -260,29 +193,29 @@ func main() {
 
 	log.Println("Configuring rpio ...")
 	check(rpio.Open())
-	powerPin1.Output()
-	powerPin2.Output()
-	defer powerPin1.Input()
-	defer powerPin2.Input()
-	heatPin.Output()
-	defer heatPin.Input()
-	readPowerPin.Input()
-	readPowerPin.PullUp()
-	readHeatPin.Input()
-	readHeatPin.PullUp()
+	data.PowerPin1.Output()
+	data.PowerPin2.Output()
+	defer data.PowerPin1.Input()
+	defer data.PowerPin2.Input()
+	data.HeatPin.Output()
+	defer data.HeatPin.Input()
+	data.ReadPowerPin.Input()
+	data.ReadPowerPin.PullUp()
+	data.ReadHeatPin.Input()
+	data.ReadHeatPin.PullUp()
 	log.Println("Done configuring rpio ...")
 
 	readConfig()
 
-	if powerOn {
-		setPower(ON)
+	if data.PowerOn {
+		data.SetPower(data.ON)
 	} else {
-		setPower(OFF)
+		data.SetPower(data.OFF)
 	}
-	if heatOn {
-		setHeat(ON)
+	if data.HeatOn {
+		data.SetHeat(data.ON)
 	} else {
-		setHeat(OFF)
+		data.SetHeat(data.OFF)
 	}
 
 	writeConfig()
@@ -291,13 +224,13 @@ func main() {
 	go func() {
 		nextRetry := sensorRetry
 		for {
-			readPower()
-			readHeat()
-			readTemp()
-			if errorInTemp {
+			data.ReadPower()
+			data.ReadHeat()
+			data.ReadTemp()
+			if data.ErrorInTemp {
 				// Oops, there has been an error measuring the temperature
-				if thermostatOn {
-					setHeat(OFF)
+				if data.ThermostatOn {
+					data.SetHeat(data.OFF)
 				}
 				time.Sleep(nextRetry)
 				nextRetry = (nextRetry * 3) / 2 // So we increase the wait time progressively in cummulative errors
@@ -308,12 +241,12 @@ func main() {
 			} else {
 				nextRetry = sensorRetry
 			}
-			log.Println("Current temp is ", currentTemp)
-			if powerReading && thermostatOn {
-				if currentTemp <= targetTemp-hysteresis && !heatOn {
-					setHeat(ON)
-				} else if currentTemp >= targetTemp+hysteresis && heatOn {
-					setHeat(OFF)
+			log.Println("Current temp is ", data.CurrentTemp)
+			if data.PowerReading && data.ThermostatOn {
+				if data.CurrentTemp <= data.TargetTemp-data.Hysteresis && !data.HeatOn {
+					data.SetHeat(data.ON)
+				} else if data.CurrentTemp >= data.TargetTemp+data.Hysteresis && data.HeatOn {
+					data.SetHeat(data.OFF)
 				}
 			}
 			time.Sleep(timeInterval)
@@ -345,55 +278,55 @@ func main() {
 					fmt.Println("Missing target temperature, syntax is: changeTemp <temp>")
 					continue
 				}
-				oldTemp := targetTemp
+				oldTemp := data.TargetTemp
 				newTemp, err := strconv.ParseFloat(command[1], 64)
 				if err != nil {
 					fmt.Println("Wrong target temperature: ", command[1])
 					continue
 				}
-				targetTemp = newTemp
-				str = fmt.Sprintf("Target temperature changed, old temparture was %.2f, new temperature is %.2f", oldTemp, targetTemp)
+				data.TargetTemp = newTemp
+				str = fmt.Sprintf("Target temperature changed, old temparture was %.2f, new temperature is %.2f", oldTemp, data.TargetTemp)
 			case "changeHyst":
 				if len(command) != 2 {
 					fmt.Println("Missing hysteresis, syntax is: changeTemp <hyst>")
 					continue
 				}
-				oldHyst := hysteresis
+				oldHyst := data.Hysteresis
 				newHyst, err := strconv.ParseFloat(command[1], 64)
 				if err != nil {
 					fmt.Println("Wrong hystheresis: ", command[1])
 					continue
 				}
-				hysteresis = newHyst
+				data.Hysteresis = newHyst
 				str = fmt.Sprintf("Hystheresis changed, old hysteresis was %.2f, new hysteresis is %.2f", oldHyst, newHyst)
 			case "changeSensor":
 				if len(command) != 2 {
 					fmt.Println("Missing new sensor, syntax is: changeSensor <sensor>")
 					continue
 				}
-				oldSensor := sensor
-				sensor = command[1]
+				oldSensor := data.Sensor
+				data.Sensor = command[1]
 				str = "Sensor changed, old sensor was " + oldSensor + ", new sensor is " + command[1]
-				readTemp()
+				data.ReadTemp()
 			case "pauseThermostat":
-				thermostatOn = false
-				setHeat(OFF)
+				data.ThermostatOn = false
+				data.SetHeat(data.OFF)
 				str = "Thermostat function now paused (and heat stopped)"
 			case "resumeThermostat":
-				thermostatOn = true
+				data.ThermostatOn = true
 				fmt.Printf("Thermostat function resumed\n")
 				str = "Thermostat function now resumed"
 			case "heaterOff":
-				setHeat(OFF)
+				data.SetHeat(data.OFF)
 				str = "Heat manually disconnected"
 			case "heaterOn":
-				setHeat(ON)
+				data.SetHeat(data.ON)
 				str = "Heat manually connected"
 			case "powerOff":
-				setPower(OFF)
+				data.SetPower(data.OFF)
 				str = "Power manually disconnected"
 			case "powerOn":
-				setPower(ON)
+				data.SetPower(data.ON)
 				str = "Power manually connected"
 			case "help":
 				fmt.Println("COMMANDS:")
