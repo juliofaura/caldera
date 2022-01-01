@@ -6,33 +6,39 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/stianeikeland/go-rpio"
 )
 
 const (
-	gettempBinary = "Local/gettemp"
-	ON            = "\033[1;32mON\033[0m"
-	OFF           = "\033[1;31mOFF\033[0m"
+	gettempBinary      = "Local/gettemp"
+	ON                 = "\033[1;32mON\033[0m"
+	OFF                = "\033[1;31mOFF\033[0m"
+	OilWarning         = 1000
+	OilCriticalWarning = 600
 )
 
 var (
-	PowerOn      = true // Weather we are powering the heater
-	PowerReading = true // Weather the heater has power (could be powered externally)
-	ThermostatOn = true // Whether the thermostat control is on
-	HeatOn       = true // Whether we are intending to connect the heat
-	HeatReading  = true // Whether the heat is actually connected (could be through an external thermostat)
-	Sensor       = "salon"
-	CurrentTemp  = 0.0
-	TargetTemp   = 21.0
-	Hysteresis   = 0.05
-	ErrorInTemp  = true
-	LogfileName  = ""
-	PowerPin1    = rpio.Pin(14)
-	PowerPin2    = rpio.Pin(15)
-	HeatPin      = rpio.Pin(23)
-	ReadPowerPin = rpio.Pin(27)
-	ReadHeatPin  = rpio.Pin(17)
+	PowerOn         = true // Weather we are powering the heater
+	PowerReading    = true // Weather the heater has power (could be powered externally)
+	ThermostatOn    = true // Whether the thermostat control is on
+	HeatOn          = true // Whether we are intending to connect the heat
+	HeatReading     = true // Whether the heat is actually connected (could be through an external thermostat)
+	Sensor          = "salon"
+	CurrentTemp     = 0.0
+	TargetTemp      = 21.0
+	Hysteresis      = 0.05
+	ErrorInTemp     = true
+	LogfileName     = ""
+	PowerPin1       = rpio.Pin(14)
+	PowerPin2       = rpio.Pin(15)
+	HeatPin         = rpio.Pin(23)
+	ReadPowerPin    = rpio.Pin(27)
+	ReadHeatPin     = rpio.Pin(17)
+	LastOilRead     = 0
+	LastOilReadDate = time.Unix(0, 0)
+	LastConsumption = 0.0
 )
 
 func ReadPower() bool {
@@ -88,4 +94,8 @@ func SetHeat(state string) {
 		HeatOn = false
 	}
 	log.Println("Heat set to", state)
+}
+
+func ReadOil() {
+	Make a module in oilmeter, then read csv etc
 }
