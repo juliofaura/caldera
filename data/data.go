@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/stianeikeland/go-rpio"
@@ -39,6 +40,7 @@ var (
 	LastOilRead     = 0
 	LastOilReadDate = time.Unix(0, 0)
 	LastConsumption = 0.0
+	M               = sync.Mutex{}
 )
 
 func ReadPower() bool {
@@ -94,8 +96,4 @@ func SetHeat(state string) {
 		HeatOn = false
 	}
 	log.Println("Heat set to", state)
-}
-
-func ReadOil() {
-	Make a module in oilmeter, then read csv etc
 }

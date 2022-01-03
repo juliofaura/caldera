@@ -10,6 +10,8 @@ import (
 )
 
 func HandleCaldera(w http.ResponseWriter, req *http.Request) {
+	data.M.Lock()
+	defer data.M.Unlock()
 
 	// webutil.PushAlertf(w, req, webutil.ALERT_SUCCESS, "Success!")
 	// webutil.Reload(w, req, "/")
@@ -63,30 +65,40 @@ func HandleCaldera(w http.ResponseWriter, req *http.Request) {
 }
 
 func HandlePowerOn(w http.ResponseWriter, req *http.Request) {
+	data.M.Lock()
+	defer data.M.Unlock()
 	data.SetPower(data.ON)
 	webutil.PushAlertf(w, req, webutil.ALERT_SUCCESS, "Encendida la caldera")
 	webutil.Reload(w, req, "/caldera")
 }
 
 func HandlePowerOff(w http.ResponseWriter, req *http.Request) {
+	data.M.Lock()
+	defer data.M.Unlock()
 	data.SetPower(data.OFF)
 	webutil.PushAlertf(w, req, webutil.ALERT_SUCCESS, "Apagada la caldera")
 	webutil.Reload(w, req, "/caldera")
 }
 
 func HandleThermostatOn(w http.ResponseWriter, req *http.Request) {
+	data.M.Lock()
+	defer data.M.Unlock()
 	data.ThermostatOn = true
 	webutil.PushAlertf(w, req, webutil.ALERT_SUCCESS, "Activado el termostato")
 	webutil.Reload(w, req, "/caldera")
 }
 
 func HandleThermostatOff(w http.ResponseWriter, req *http.Request) {
+	data.M.Lock()
+	defer data.M.Unlock()
 	data.ThermostatOn = false
 	webutil.PushAlertf(w, req, webutil.ALERT_SUCCESS, "Desactivado el termostato")
 	webutil.Reload(w, req, "/caldera")
 }
 
 func HandleChangeTemp(w http.ResponseWriter, req *http.Request) {
+	data.M.Lock()
+	defer data.M.Unlock()
 	req.ParseForm()
 	newTempA, oknewtemp := req.Form["newtemp"]
 	if !oknewtemp {

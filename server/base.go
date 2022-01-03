@@ -39,6 +39,8 @@ var (
 
 var templates = template.Must(template.ParseFiles(
 	WEB_PATH+"caldera.html",
+	WEB_PATH+"gasoleo.html",
+	WEB_PATH+"temperatura.html",
 	WEB_PATH+"theme.html",
 ))
 
@@ -70,6 +72,8 @@ func StartWeb() {
 	)
 	http.Handle("/", http.HandlerFunc(HandleCaldera))
 	http.Handle("/caldera", http.HandlerFunc(HandleCaldera))
+	http.Handle("/gasoleo", http.HandlerFunc(HandleGasoleo))
+	http.Handle("/temperatura", http.HandlerFunc(HandleTemperatura))
 	http.Handle("/poweron", http.HandlerFunc(HandlePowerOn))
 	http.Handle("/poweroff", http.HandlerFunc(HandlePowerOff))
 	http.Handle("/thermostaton", http.HandlerFunc(HandleThermostatOn))

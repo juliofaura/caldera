@@ -14,6 +14,7 @@ import (
 
 	"github.com/juliofaura/caldera/data"
 	"github.com/juliofaura/caldera/server"
+	"github.com/juliofaura/oilmeter/files"
 	rpio "github.com/stianeikeland/go-rpio"
 )
 
@@ -175,6 +176,11 @@ func main() {
 	server.HEADER_PAGE_TITLE = "Caldera control and report page"
 	log.Printf("Initializing %s with web port='%v'", args[0], server.WEBPORT)
 	server.StartWeb()
+	files.WorkingDir = "/home/pi/Gasoleo/"
+	// files.WorkingDir = "/Users/julio/Dropbox/Gasoleo/"
+	files.DataFile = files.WorkingDir + "data.txt"
+	// files.GraphFile = files.WorkingDir + "graph.png"
+	files.AverageFile = files.WorkingDir + "oilaverage.txt"
 
 	executable, err := os.Executable()
 	check(err)
