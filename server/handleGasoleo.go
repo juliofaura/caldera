@@ -170,7 +170,7 @@ func HandleGasoleo(w http.ResponseWriter, req *http.Request) {
 				},
 			},
 		},
-		Title: "Oil liters vs time (avg is " + fmt.Sprintf("%.2f", average) + " liters / day)",
+		Title: "Gasóelo en el tanque",
 	}
 
 	f, _ := os.Create(RESOURCES_DIR + "gasoleo.png")
@@ -178,7 +178,7 @@ func HandleGasoleo(w http.ResponseWriter, req *http.Request) {
 	graph1.Render(chart.PNG, f)
 
 	graph2 := chart.BarChart{
-		Title: "Test Bar Chart",
+		Title: "Consumo medio por mes\nMedia actual = " + fmt.Sprintf("%.2f", average) + " litros/día",
 		Background: chart.Style{
 			Padding: chart.Box{
 				Top: 40,
