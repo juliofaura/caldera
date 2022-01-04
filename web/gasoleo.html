@@ -1,12 +1,16 @@
 
 <!-- This is a go template. TO be used with header.html, which provides with the header of the actual HTML file -->
 
-  <div class="row flex">
-      <div class="col-md-12">
-        <h4>Gasóleo actual: <b>{{.liters}}</b></h4>
-        <h4>Consumo medio de los últimos 14 días: <b>{{.avg}}</b></h4>
-      </div>
+<div class="row flex">
+  <div class="col-md-12">
+    <h4>Gasóleo actual: <b>{{.liters}}</b></h4>
+    <h4>Consumo medio de los últimos {{.daysforaverage}} días: <b>{{.avg}}</b></h4>
+    <br>
+    <h4><img src="/resources/gasoleo.png"></h4>
+    <br>
+    <h4><img src="/resources/consumos.png"></h4>
   </div>
+</div>
 
 </div> <!-- /container -->
 

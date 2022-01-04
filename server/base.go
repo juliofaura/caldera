@@ -20,7 +20,7 @@ const (
 	WEB_PATH               = "./web/"
 	HEADER_TEMPLATE_FILE   = "header.html"
 	ERROR_TEMPLATE_FILE    = "error.html"
-	BACKGROUNDPICSDIR      = "(not used)"
+	RESOURCES_DIR          = WEB_PATH + "resources/"
 	SESSIONNAMEPREFIX      = "calderaWebSession"
 	SESSIONSTORENAMEPREFIX = "calderaWebCookiestore2345234xjhkh"
 	SESSIONALERTSPREFIX    = "calderaWebPendingAlerts"
