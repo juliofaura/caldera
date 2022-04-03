@@ -22,7 +22,6 @@ const (
 	timeInterval   = 1 * time.Minute
 	sensorRetry    = 3 * time.Second
 	maxSensorRetry = 1 * time.Minute
-	configFileName = ".calderaConfig"
 	tempFormatter  = "\033[1;33m%.2f\033[0m"
 	errorFormatter = "\033[1;31m%v\033[0m"
 )
@@ -82,91 +81,6 @@ func printStatus() {
 	}
 }
 
-func readConfig() {
-	configFile, err := os.Open(configFileName)
-	defer configFile.Close()
-	if err == nil {
-
-		var powerOnSaved bool
-		var thermostatOnSaved bool
-		var heatOnSaved bool
-		var sensorSaved string
-		var targetTempSaved float64
-		var hysteresisSaved float64
-
-		var line string
-		n, err := fmt.Fscanln(configFile, &line)
-		if err != nil || n != 1 {
-			return
-		}
-		s := strings.Split(line, ",")
-		if len(s) != 6 {
-			return
-		}
-
-		if s[0] == "true" {
-			powerOnSaved = true
-		} else if s[0] == "false" {
-			powerOnSaved = false
-		} else {
-			return
-		}
-
-		if s[1] == "true" {
-			thermostatOnSaved = true
-		} else if s[1] == "false" {
-			thermostatOnSaved = false
-		} else {
-			return
-		}
-
-		if s[2] == "true" {
-			heatOnSaved = true
-		} else if s[2] == "false" {
-			heatOnSaved = false
-		} else {
-			return
-		}
-
-		sensorSaved = s[3]
-
-		targetTempSaved, err = strconv.ParseFloat(s[4], 64)
-		if err != nil {
-			return
-		}
-
-		hysteresisSaved, err = strconv.ParseFloat(s[5], 64)
-		if err != nil {
-			return
-		}
-
-		data.PowerOn = powerOnSaved
-		data.ThermostatOn = thermostatOnSaved
-		data.HeatOn = heatOnSaved
-		data.Sensor = sensorSaved
-		data.TargetTemp = targetTempSaved
-		data.Hysteresis = hysteresisSaved
-
-	} else {
-		fmt.Println("Config file does not exist")
-	}
-}
-
-func writeConfig() {
-	configFile, err := os.Create(configFileName)
-	if err == nil {
-		fmt.Fprintf(configFile, "%v,%v,%v,%v,%v,%v\n", data.PowerOn, data.ThermostatOn, data.HeatOn, data.Sensor, data.TargetTemp, data.Hysteresis)
-	}
-	configFile.Close()
-	log.Println("Config updated:")
-	log.Println("  - powerOn is", data.PowerOn)
-	log.Println("  - heatOn is", data.HeatOn)
-	log.Println("  - thermostatOn", data.ThermostatOn)
-	log.Println("  - sensor is", data.Sensor)
-	log.Println("  - targetTemp is", data.TargetTemp)
-	log.Println("  - hysteresis is", data.Hysteresis)
-}
-
 func main() {
 
 	args := os.Args
@@ -211,7 +125,7 @@ func main() {
 	data.ReadHeatPin.PullUp()
 	log.Println("Done configuring rpio ...")
 
-	readConfig()
+	data.ReadConfig()
 
 	if data.PowerOn {
 		data.SetPower(data.ON)
@@ -224,7 +138,7 @@ func main() {
 		data.SetHeat(data.OFF)
 	}
 
-	writeConfig()
+	data.WriteConfig()
 
 	// Thermostat loop
 	go func() {
@@ -353,7 +267,7 @@ func main() {
 			}
 			fmt.Println(str)
 			log.Println(str)
-			writeConfig()
+			data.WriteConfig()
 		}
 	}
 

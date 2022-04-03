@@ -68,6 +68,7 @@ func HandlePowerOn(w http.ResponseWriter, req *http.Request) {
 	data.M.Lock()
 	defer data.M.Unlock()
 	data.SetPower(data.ON)
+	data.WriteConfig()
 	webutil.PushAlertf(w, req, webutil.ALERT_SUCCESS, "Encendida la caldera")
 	webutil.Reload(w, req, "/caldera")
 }
@@ -76,6 +77,7 @@ func HandlePowerOff(w http.ResponseWriter, req *http.Request) {
 	data.M.Lock()
 	defer data.M.Unlock()
 	data.SetPower(data.OFF)
+	data.WriteConfig()
 	webutil.PushAlertf(w, req, webutil.ALERT_SUCCESS, "Apagada la caldera")
 	webutil.Reload(w, req, "/caldera")
 }
@@ -84,6 +86,7 @@ func HandleThermostatOn(w http.ResponseWriter, req *http.Request) {
 	data.M.Lock()
 	defer data.M.Unlock()
 	data.ThermostatOn = true
+	data.WriteConfig()
 	webutil.PushAlertf(w, req, webutil.ALERT_SUCCESS, "Activado el termostato")
 	webutil.Reload(w, req, "/caldera")
 }
@@ -92,6 +95,7 @@ func HandleThermostatOff(w http.ResponseWriter, req *http.Request) {
 	data.M.Lock()
 	defer data.M.Unlock()
 	data.ThermostatOn = false
+	data.WriteConfig()
 	webutil.PushAlertf(w, req, webutil.ALERT_SUCCESS, "Desactivado el termostato")
 	webutil.Reload(w, req, "/caldera")
 }
@@ -113,6 +117,7 @@ func HandleChangeTemp(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	data.TargetTemp = newTemp
+	data.WriteConfig()
 	webutil.PushAlertf(w, req, webutil.ALERT_SUCCESS, "Cambiada la temperatura objetivo a "+fmt.Sprint(newTemp))
 	webutil.Reload(w, req, "/caldera")
 }

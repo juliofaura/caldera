@@ -2,7 +2,9 @@ package data
 
 import (
 	"bytes"
+	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -13,6 +15,7 @@ import (
 )
 
 const (
+	configFileName     = ".calderaConfig"
 	gettempBinary      = "Local/gettemp"
 	ON                 = "\033[1;32mON\033[0m"
 	OFF                = "\033[1;31mOFF\033[0m"
@@ -96,4 +99,89 @@ func SetHeat(state string) {
 		HeatOn = false
 	}
 	log.Println("Heat set to", state)
+}
+
+func ReadConfig() {
+	configFile, err := os.Open(configFileName)
+	defer configFile.Close()
+	if err == nil {
+
+		var powerOnSaved bool
+		var thermostatOnSaved bool
+		var heatOnSaved bool
+		var sensorSaved string
+		var targetTempSaved float64
+		var hysteresisSaved float64
+
+		var line string
+		n, err := fmt.Fscanln(configFile, &line)
+		if err != nil || n != 1 {
+			return
+		}
+		s := strings.Split(line, ",")
+		if len(s) != 6 {
+			return
+		}
+
+		if s[0] == "true" {
+			powerOnSaved = true
+		} else if s[0] == "false" {
+			powerOnSaved = false
+		} else {
+			return
+		}
+
+		if s[1] == "true" {
+			thermostatOnSaved = true
+		} else if s[1] == "false" {
+			thermostatOnSaved = false
+		} else {
+			return
+		}
+
+		if s[2] == "true" {
+			heatOnSaved = true
+		} else if s[2] == "false" {
+			heatOnSaved = false
+		} else {
+			return
+		}
+
+		sensorSaved = s[3]
+
+		targetTempSaved, err = strconv.ParseFloat(s[4], 64)
+		if err != nil {
+			return
+		}
+
+		hysteresisSaved, err = strconv.ParseFloat(s[5], 64)
+		if err != nil {
+			return
+		}
+
+		PowerOn = powerOnSaved
+		ThermostatOn = thermostatOnSaved
+		HeatOn = heatOnSaved
+		Sensor = sensorSaved
+		TargetTemp = targetTempSaved
+		Hysteresis = hysteresisSaved
+
+	} else {
+		fmt.Println("Config file does not exist")
+	}
+}
+
+func WriteConfig() {
+	configFile, err := os.Create(configFileName)
+	if err == nil {
+		fmt.Fprintf(configFile, "%v,%v,%v,%v,%v,%v\n", PowerOn, ThermostatOn, HeatOn, Sensor, TargetTemp, Hysteresis)
+	}
+	configFile.Close()
+	log.Println("Config updated:")
+	log.Println("  - powerOn is", PowerOn)
+	log.Println("  - heatOn is", HeatOn)
+	log.Println("  - thermostatOn", ThermostatOn)
+	log.Println("  - sensor is", Sensor)
+	log.Println("  - targetTemp is", TargetTemp)
+	log.Println("  - hysteresis is", Hysteresis)
 }
