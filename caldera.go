@@ -168,6 +168,8 @@ func main() {
 				} else if data.CurrentTemp >= data.TargetTemp+data.Hysteresis && data.HeatOn {
 					data.SetHeat(data.OFF)
 				}
+			} else if data.PowerReading && !data.ThermostatOn && data.HeatOn {
+				data.SetHeat(data.OFF)
 			}
 			time.Sleep(timeInterval)
 		}

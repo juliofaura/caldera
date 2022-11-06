@@ -52,6 +52,12 @@ func HandleCaldera(w http.ResponseWriter, req *http.Request) {
 		webutil.PushAlertf(w, req, webutil.ALERT_DANGER, msg)
 	}
 
+	if data.ErrorInTemp {
+		msg := "Error! - error al medir la temperatura del sensor (" + data.Sensor + ")"
+		webutil.PushAlertf(w, req, webutil.ALERT_DANGER, msg)
+
+	}
+
 	passdata := map[string]interface{}{
 		"power":       data.PowerOn,
 		"thermostat":  data.ThermostatOn,
