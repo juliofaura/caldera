@@ -2,6 +2,7 @@ package data
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -21,6 +22,7 @@ const (
 	OFF                = "\033[1;31mOFF\033[0m"
 	OilWarning         = 1000
 	OilCriticalWarning = 600
+	MinTemp            = 1 // If temperature is less than this then we consider the temp sensor is not working properly
 )
 
 var (
@@ -65,11 +67,17 @@ func ReadTemp() (temperature float64, err error) {
 		ErrorInTemp = true
 		return
 	}
-	result := strings.TrimSpace(string(stdout.Bytes()))
+	//result := strings.TrimSpace(string(stdout.Bytes()))
+	result := strings.TrimSpace(stdout.String())
 	temperature, err = strconv.ParseFloat(result, 64)
 	if err != nil {
 		ErrorInTemp = true
-		log.Printf("Error mneasuring temperature in sensor %v (%v)\n", Sensor, err)
+		log.Printf("Error measuring temperature in sensor %v (%v)\n", Sensor, err)
+	} else if temperature < MinTemp {
+		ErrorInTemp = true
+		errMsg := fmt.Sprintf("Error measuring temperature in sensor %v, temp is %v and that seems too low (min threshold is %v)", Sensor, temperature, MinTemp)
+		err = errors.New(errMsg)
+		log.Print(errMsg)
 	} else {
 		ErrorInTemp = false
 		CurrentTemp = temperature
