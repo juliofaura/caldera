@@ -38,13 +38,13 @@ func HandleCaldera(w http.ResponseWriter, req *http.Request) {
 
 	if data.HeatOn != data.HeatReading {
 		msg := "Error! - el calentador está "
-		if data.HeatOn {
+		if data.HeatReading {
 			msg += "encendido"
 		} else {
 			msg += "apagado"
 		}
 		msg += " y debería estar "
-		if data.HeatReading {
+		if data.HeatOn {
 			msg += "encendido"
 		} else {
 			msg += "apagado"
@@ -61,7 +61,7 @@ func HandleCaldera(w http.ResponseWriter, req *http.Request) {
 	passdata := map[string]interface{}{
 		"power":       data.PowerOn,
 		"thermostat":  data.ThermostatOn,
-		"heater":      data.HeatOn,
+		"heater":      data.HeatReading,
 		"sensor":      data.Sensor,
 		"temperature": data.CurrentTemp,
 		"targettemp":  data.TargetTemp,
