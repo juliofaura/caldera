@@ -5,6 +5,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/juliofaura/caldera/data"
 	oildata "github.com/juliofaura/oilmeter/data"
@@ -132,7 +133,8 @@ func HandleGasoleo(w http.ResponseWriter, req *http.Request) {
 			TickPosition: chart.TickPositionBetweenTicks,
 			ValueFormatter: func(v interface{}) string {
 				typed := v.(float64) * 1e9
-				typedDate := chart.TimeFromFloat64(typed)
+				//typedDate := chart.TimeFromFloat64(typed)
+				typedDate := time.Unix(int64(typed/1e9), int64(typed)%1e9)
 				return fmt.Sprintf("%d/%d/%d", typedDate.Month(), typedDate.Day(), typedDate.Year())
 			},
 			Style: chart.Style{
