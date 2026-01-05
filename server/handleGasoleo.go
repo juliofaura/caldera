@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"net/http"
 	"os"
@@ -11,12 +12,13 @@ import (
 	oildata "github.com/juliofaura/oilmeter/data"
 	"github.com/juliofaura/oilmeter/files"
 	"github.com/juliofaura/webutil"
-	chart "github.com/wcharczuk/go-chart"
-	"github.com/wcharczuk/go-chart/drawing"
+	chart "github.com/wcharczuk/go-chart/v2"
+	"github.com/wcharczuk/go-chart/v2/drawing"
 )
 
 const (
-	timeForGraph = 61 * 24 * 60 * 60
+	timeForGraph          = 61 * 24 * 60 * 60
+	GasFilteringThreshold = 60
 )
 
 func HandleGasoleo(w http.ResponseWriter, req *http.Request) {
@@ -26,11 +28,37 @@ func HandleGasoleo(w http.ResponseWriter, req *http.Request) {
 	// webutil.PushAlertf(w, req, webutil.ALERT_SUCCESS, "Success!")
 	// webutil.Reload(w, req, "/")
 
-	datums, err := files.ReadDataFile(files.DataFile)
+	raw_datums, err := files.ReadDataFile(files.DataFile)
 	if err != nil {
 		webutil.PushAlertf(w, req, webutil.ALERT_DANGER, "Error leyendo los datos del gasoleo")
 		webutil.Reload(w, req, "/caldera")
 		return
+	}
+
+	var datums []oildata.Datapoint
+
+	if len(raw_datums) >= 6 {
+
+		for i, v := range raw_datums {
+			if i < 3 {
+				datums = append(datums, v)
+				continue
+			}
+			if (math.Abs(v.Liters-raw_datums[i-1].Liters) < GasFilteringThreshold) || (math.Abs(v.Liters-raw_datums[i-2].Liters) < GasFilteringThreshold) || (math.Abs(v.Liters-raw_datums[i-3].Liters) < GasFilteringThreshold) {
+				datums = append(datums, v)
+				continue
+			} else {
+				log.Printf("Datum filtered, i = %d, v = %v\n", i, v)
+			}
+			if i >= len(raw_datums)-3 {
+				continue
+			}
+			if (math.Abs(v.Liters-raw_datums[i+1].Liters) < GasFilteringThreshold) || (math.Abs(v.Liters-raw_datums[i+2].Liters) < GasFilteringThreshold) || (math.Abs(v.Liters-raw_datums[i+3].Liters) < GasFilteringThreshold) {
+				datums = append(datums, v)
+			} else {
+				log.Printf("Datum filtered, i = %d, v = %v\n", i, v)
+			}
+		}
 	}
 
 	// avgFile, err := os.Open(files.AverageFile)
@@ -132,9 +160,8 @@ func HandleGasoleo(w http.ResponseWriter, req *http.Request) {
 		XAxis: chart.XAxis{
 			TickPosition: chart.TickPositionBetweenTicks,
 			ValueFormatter: func(v interface{}) string {
-				typed := v.(float64) * 1e9
-				//typedDate := chart.TimeFromFloat64(typed)
-				typedDate := time.Unix(int64(typed/1e9), int64(typed)%1e9)
+				typed := v.(float64)
+				typedDate := time.Unix(int64(typed), 0)
 				return fmt.Sprintf("%d/%d/%d", typedDate.Month(), typedDate.Day(), typedDate.Year())
 			},
 			Style: chart.Style{
@@ -175,12 +202,15 @@ func HandleGasoleo(w http.ResponseWriter, req *http.Request) {
 		Title: "Gasóelo en el tanque",
 	}
 
-	f, _ := os.Create(RESOURCES_DIR + "gasoleo.png")
+	f, err := os.Create(RESOURCES_DIR + "gasoleo.png")
 	defer f.Close()
+	if err != nil {
+		log.Println("Error! ", err)
+	}
 	graph1.Render(chart.PNG, f)
 
 	graph2 := chart.BarChart{
-		Title: "Consumo medio por mes\nMedia actual = " + fmt.Sprintf("%.2f", average) + " litros/día",
+		Title: "Consumo medio por mes (media actual = " + fmt.Sprintf("%.2f", average) + " litros/día)",
 		Background: chart.Style{
 			Padding: chart.Box{
 				Top: 40,
