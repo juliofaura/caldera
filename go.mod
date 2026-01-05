@@ -4,7 +4,7 @@ go 1.25.5
 
 require (
 	github.com/gorilla/context v1.1.2
-	github.com/juliofaura/oilmeter v0.0.0-20260101203420-429ff136fe32
+	github.com/juliofaura/oilmeter v0.0.0-20260105113229-250782056005
 	github.com/juliofaura/webutil v0.0.0-20210306173923-ef1d6b29a226
 	github.com/stianeikeland/go-rpio v4.2.0+incompatible
 	github.com/wcharczuk/go-chart/v2 v2.1.2

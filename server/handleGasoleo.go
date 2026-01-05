@@ -18,7 +18,7 @@ import (
 
 const (
 	timeForGraph          = 61 * 24 * 60 * 60
-	GasFilteringThreshold = 60
+	GasFilteringThreshold = 50
 )
 
 func HandleGasoleo(w http.ResponseWriter, req *http.Request) {
@@ -35,31 +35,7 @@ func HandleGasoleo(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var datums []oildata.Datapoint
-
-	if len(raw_datums) >= 6 {
-
-		for i, v := range raw_datums {
-			if i < 3 {
-				datums = append(datums, v)
-				continue
-			}
-			if (math.Abs(v.Liters-raw_datums[i-1].Liters) < GasFilteringThreshold) || (math.Abs(v.Liters-raw_datums[i-2].Liters) < GasFilteringThreshold) || (math.Abs(v.Liters-raw_datums[i-3].Liters) < GasFilteringThreshold) {
-				datums = append(datums, v)
-				continue
-			} else {
-				log.Printf("Datum filtered, i = %d, v = %v\n", i, v)
-			}
-			if i >= len(raw_datums)-3 {
-				continue
-			}
-			if (math.Abs(v.Liters-raw_datums[i+1].Liters) < GasFilteringThreshold) || (math.Abs(v.Liters-raw_datums[i+2].Liters) < GasFilteringThreshold) || (math.Abs(v.Liters-raw_datums[i+3].Liters) < GasFilteringThreshold) {
-				datums = append(datums, v)
-			} else {
-				log.Printf("Datum filtered, i = %d, v = %v\n", i, v)
-			}
-		}
-	}
+	datums := files.FilterDatafile(raw_datums, GasFilteringThreshold)
 
 	// avgFile, err := os.Open(files.AverageFile)
 	// if err != nil {
@@ -199,7 +175,7 @@ func HandleGasoleo(w http.ResponseWriter, req *http.Request) {
 				},
 			},
 		},
-		Title: "Gasóelo en el tanque",
+		Title: "Gasóleo en el tanque",
 	}
 
 	f, err := os.Create(RESOURCES_DIR + "gasoleo.png")
